@@ -1,0 +1,9 @@
+create table user(
+	id int primary key auto_increment,
+	name varchar(32) not null,
+	phone varchar(12) not null,
+	email varchar(64) not null,
+	authority tinyint(1) not null,
+	password varchar(128) not null,
+	created_at datetime DEFAULT CURRENT_TIMESTAMP not null
+)ENGINE=INNODB;
