@@ -10,10 +10,14 @@ type TokenDetails struct {
 }
 
 type DBHandler interface {
-	AddUser(name, email, password string, authority int) *User
-	GetUsers(userAuth int) []*User
-	GetUser() *User
-	ChangeUserAuth(userAuth int) *User
-	DeleteUser(userAuth int) bool
+	AddUser(name, email, password, phone string) error
+	GetUsers() ([]*User, error)
+	GetUser(email string) (*User, error)
+	ChangeUserAuth(userAuth, userId int) (*User, error)
+	DeleteUser(userAuth, userId int) (bool, error)
 	Close()
+}
+
+func NewDBHandler() DBHandler {
+	return newMySQLHandler()
 }

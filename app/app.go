@@ -3,26 +3,37 @@ package app
 import (
 	"auth/api"
 	"auth/auth"
+	"auth/model"
+	"auth/utils"
+	"encoding/json"
 	"net/http"
+	"text/template"
 
 	"github.com/gorilla/mux"
-	"github.com/unrolled/render"
 	"github.com/urfave/negroni"
 )
 
-var rd *render.Render = render.New()
-
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	// 만약 access token, refresh token이 있다면
-	// 이 때 이것이 유효하다면
-	// http.Redirect(w, r, "/home.html", http.StatusTemporaryRedirect)
-
-	// 있지만 유효하지 않거나 없다면
 	http.Redirect(w, r, "/login.html", http.StatusTemporaryRedirect)
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/home.html", http.StatusTemporaryRedirect)
+	http.ServeFile(w, r, "./public/home.html")
+}
+
+func signUpHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./public/signup.html")
+}
+
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	resp, err := http.Get("http://localhost:8080/api/users")
+	if err != nil {
+		utils.RespondError(w, http.StatusBadRequest, err.Error())
+	}
+	var users []*model.User
+	json.NewDecoder(resp.Body).Decode(&users)
+	t, _ := template.ParseFiles("./public/admin.html")
+	t.Execute(w, users)
 }
 
 func MakeRouter() http.Handler {
@@ -30,7 +41,11 @@ func MakeRouter() http.Handler {
 	api.AddApiRouter(r)
 	auth.AddAuthRouter(r)
 	n := negroni.Classic()
+
 	n.UseHandler(r)
 	r.HandleFunc("/", indexHandler).Methods("GET")
+	r.HandleFunc("/main", homeHandler).Methods("GET")
+	r.HandleFunc("/signup", signUpHandler).Methods("GET")
+	r.HandleFunc("/admin", adminHandler).Methods("GET")
 	return n
 }

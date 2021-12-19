@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -46,8 +47,7 @@ func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 		utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	token, err := createToken(userData.UserEmail, utils.StringToInt(userData.UserAuthorized))
-	fmt.Println("AA : " + userData.UserEmail)
+	token, err := createToken(userData.UserEmail, userData.UserAuthorized)
 	at := &model.AccessToken{}
 	if err != nil {
 		fmt.Println(err)
@@ -64,7 +64,7 @@ func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusCreated, at)
 }
 
-func createToken(userEmail string, userAuth int) (*model.TokenDetails, error) {
+func createToken(userEmail string, userAuth string) (*model.TokenDetails, error) {
 	td := &model.TokenDetails{}
 	td.AtExpires = time.Now().Add(time.Minute * 15).Unix()
 	td.AccessUuid = uuid.NewV4().String()
@@ -115,10 +115,131 @@ func createAuth(userEmail string, td *model.TokenDetails) error {
 	return nil
 }
 
+func CheckRemainTokenHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Authorization") == "null" {
+		utils.RespondJSON(w, http.StatusOK, model.Success{Success: false})
+		return
+	}
+	token, err := ExtractTokenMetadata(r)
+
+	if ok, _ := FetchAuthInRedis(token.AccessTokenUuid); ok {
+		utils.RespondJSON(w, http.StatusOK, model.Success{Success: true})
+		return
+	}
+	if ok, _ := FetchAuthInRedis(token.RefreshTokenUuid); ok {
+		utils.RespondJSON(w, http.StatusOK, model.Success{Success: true})
+		return
+	}
+	if err != nil {
+		utils.RespondJSON(w, http.StatusOK, model.Success{Success: false})
+		return
+	}
+}
+func ExtractTokenMetadata(r *http.Request) (*model.DataForToken, error) {
+	tokenData := &model.DataForToken{}
+	token, err := VerifyToken(r)
+	if err != nil {
+		fmt.Println(err)
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if ok {
+		authorized, ok := claims["authorized"].(string)
+		if !ok {
+			return nil, err
+		}
+		userEmail, ok := claims["user_email"].(string)
+		if !ok {
+			return nil, err
+		}
+		accessTokenUuid, ok := claims["access_uuid"].(string)
+		if !ok {
+			return nil, err
+		}
+		refreshTokenUuid, ok := claims["refresh_uuid"].(string)
+		if !ok {
+			return nil, err
+		}
+		tokenData.AccessTokenUuid = accessTokenUuid
+		tokenData.RefreshTokenUuid = refreshTokenUuid
+		tokenData.UserAuthorized = authorized
+		tokenData.UserEmail = userEmail
+
+		return tokenData, nil
+	}
+	return nil, err
+}
+
+func VerifyToken(r *http.Request) (*jwt.Token, error) {
+	tokenString := ExtractToken(r)
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		//Make sure that the token method conform to "SigningMethodHMAC"
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte("jdnfksdmfksd"), nil
+	})
+	if err != nil {
+		return token, err
+	}
+
+	return token, nil
+}
+
+func ExtractToken(r *http.Request) string {
+	bearToken := r.Header.Get("Authorization")
+	//normally Authorization the_token_xxx
+	strArr := strings.Split(bearToken, " ")
+	if len(strArr) == 2 {
+		return strArr[1]
+	}
+	return ""
+}
+
+func TokenValid(r *http.Request) error {
+	token, err := VerifyToken(r)
+	if err != nil {
+		return err
+	}
+	if _, ok := token.Claims.(jwt.Claims); !ok && !token.Valid {
+		return fmt.Errorf("unvalid token")
+	}
+	return nil
+}
+
+func FetchAuthInRedis(uuid string) (bool, error) {
+	_, err := client.Get(uuid).Result()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func DeleteTokenHandler(w http.ResponseWriter, r *http.Request) {
+	token, err := ExtractTokenMetadata(r)
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	DeleteAuth(token.AccessTokenUuid)
+	DeleteAuth(token.RefreshTokenUuid)
+	utils.RespondJSON(w, http.StatusCreated, &model.Success{Success: true})
+
+}
+
+func DeleteAuth(givenUuid string) (int64, error) {
+	deleted, err := client.Del(givenUuid).Result()
+	if err != nil {
+		return 0, err
+	}
+	return deleted, nil
+}
+
 func AddAuthRouter(r *mux.Router) {
 	if client == nil {
 		RedisConnect()
 	}
 	authRouter := r.PathPrefix("/auth").Subrouter()
 	authRouter.HandleFunc("/token", CreateTokenHandler).Methods("POST")
+	authRouter.HandleFunc("/token", CheckRemainTokenHandler).Methods("GET")
+	authRouter.HandleFunc("/token", DeleteTokenHandler).Methods("DELETE")
 }
