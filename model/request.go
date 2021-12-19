@@ -19,3 +19,8 @@ type DataForToken struct {
 type Success struct {
 	Success bool `json:"success"`
 }
+
+type VerificationData struct {
+	Email string `json:"email"`
+	Code  string `json:"code"`
+}

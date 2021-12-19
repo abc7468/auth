@@ -223,7 +223,6 @@ func DeleteTokenHandler(w http.ResponseWriter, r *http.Request) {
 	DeleteAuth(token.AccessTokenUuid)
 	DeleteAuth(token.RefreshTokenUuid)
 	utils.RespondJSON(w, http.StatusCreated, &model.Success{Success: true})
-
 }
 
 func DeleteAuth(givenUuid string) (int64, error) {

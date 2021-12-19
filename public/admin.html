@@ -19,12 +19,17 @@
                 <ul class="d-flex flex-column-reverse todo-list">
                     
                     {{range .}}
+                    {{if eq .Authority "1"}}
                     <li id={{.ID}}>
-                        {{.Email}} {{.Name}} <i class="remove mdi"></i>
+                      <div class='form-check'><label class='form-check-label'><input class='checkbox' checked='checked' type='checkbox' />{{.Email}} {{.Name}}</label></div> <i class="remove mdi"></i>
+                    </li>
+                    {{else}}
+                    <li id={{.ID}}>
+                      <div class='form-check'><label class='form-check-label'><input class='checkbox' type='checkbox' />{{.Email}} {{.Name}}</label></div> <i class="remove mdi"></i>
                     </li>
                     {{end}}
-
-                </ul>
+                    {{end}}
+                  </ul>
             </div>
         </div>
       </div>

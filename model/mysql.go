@@ -50,11 +50,27 @@ func (m *MySQLHandler) GetUser(email string) (*User, error) {
 	}
 	return user, nil
 }
-func (m *MySQLHandler) ChangeUserAuth(userAuth, userId int) (*User, error) {
-	return nil, nil
+func (m *MySQLHandler) ChangeUserAuth(userAuth string, userId int) error {
+	stmt, err := m.db.Prepare("UPDATE users SET authority=? WHERE id=?")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(userAuth, userId)
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func (m *MySQLHandler) DeleteUser(userAuth, userId int) (bool, error) {
-	return false, nil
+func (m *MySQLHandler) DeleteUser(userId int) error {
+	stmt, err := m.db.Prepare("DELETE FROM users WHERE id=?")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(userId)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func newMySQLHandler() DBHandler {
@@ -63,19 +79,5 @@ func newMySQLHandler() DBHandler {
 		panic(err)
 	}
 	fmt.Print(database)
-	// statement, _ := database.Prepare(
-	// 	`CREATE TABLE IF NOT EXISTS users (
-	// 		id int primary key auto_increment,
-	// 		name varchar(32) not null,
-	// 		phone varchar(12) not null,
-	// 		email varchar(64) not null,
-	// 		authority tinyint(1) not null,
-	// 		password varchar(128) not null,
-	// 		created_at datetime DEFAULT CURRENT_TIMESTAMP not null
-	// 	)ENGINE=INNODB;
-	// 	CREATE INDEX IF NOT EXISTS idIndexOnUsers ON todos (
-	// 		id ASC
-	// 	);`)
-	// statement.Exec()
 	return &MySQLHandler{db: database}
 }

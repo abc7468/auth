@@ -3,6 +3,7 @@ package app
 import (
 	"auth/api"
 	"auth/auth"
+	"auth/mail"
 	"auth/model"
 	"auth/utils"
 	"encoding/json"
@@ -40,6 +41,7 @@ func MakeRouter() http.Handler {
 	r := mux.NewRouter()
 	api.AddApiRouter(r)
 	auth.AddAuthRouter(r)
+	mail.AddMailRouter(r)
 	n := negroni.Classic()
 
 	n.UseHandler(r)

@@ -22,6 +22,11 @@ type Test struct {
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	test := &Test{}
 	err := json.NewDecoder(r.Body).Decode(test)
+	defer r.Body.Close()
+	if err != nil {
+		utils.RespondError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 	fmt.Println()
 	fmt.Println(test)
 	user, err := dbHandler.GetUser(test.Email)
@@ -89,6 +94,46 @@ func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondJSON(w, http.StatusOK, users)
 }
+
+type Test2 struct {
+	Id        string `json:"id"`
+	Authority string `json:"authority"`
+}
+
+func deleteUsersHandler(w http.ResponseWriter, r *http.Request) {
+	test := &Test2{}
+	err := json.NewDecoder(r.Body).Decode(test)
+	defer r.Body.Close()
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	err = dbHandler.DeleteUser(utils.StringToInt(test.Id))
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	utils.RespondJSON(w, http.StatusOK, model.Success{Success: true})
+}
+
+func updateUsersHandler(w http.ResponseWriter, r *http.Request) {
+	test := &Test2{}
+	err := json.NewDecoder(r.Body).Decode(test)
+	defer r.Body.Close()
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	err = dbHandler.ChangeUserAuth(test.Authority, utils.StringToInt(test.Id))
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	utils.RespondJSON(w, http.StatusOK, model.Success{Success: true})
+}
+
+
+
 func AddApiRouter(r *mux.Router) {
 	dbHandler = model.NewDBHandler()
 	apiRouter := r.PathPrefix("/api").Subrouter()
@@ -96,4 +141,6 @@ func AddApiRouter(r *mux.Router) {
 	apiRouter.HandleFunc("/signup", signupHandler).Methods("POST")
 	apiRouter.HandleFunc("/logout", logoutHandler).Methods("POST")
 	apiRouter.HandleFunc("/users", getUsersHandler).Methods("GET")
+	apiRouter.HandleFunc("/users", deleteUsersHandler).Methods("DELETE")
+	apiRouter.HandleFunc("/users", updateUsersHandler).Methods("UPDATE")
 }

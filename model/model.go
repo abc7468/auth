@@ -13,11 +13,12 @@ type DBHandler interface {
 	AddUser(name, email, password, phone string) error
 	GetUsers() ([]*User, error)
 	GetUser(email string) (*User, error)
-	ChangeUserAuth(userAuth, userId int) (*User, error)
-	DeleteUser(userAuth, userId int) (bool, error)
+	ChangeUserAuth(userAuth string, userId int) error
+	DeleteUser(userId int) error
 	Close()
 }
 
 func NewDBHandler() DBHandler {
 	return newMySQLHandler()
 }
+
