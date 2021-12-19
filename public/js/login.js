@@ -24,7 +24,7 @@
                 }
               }).then(
                 setTimeout(function() {
-                  window.location.href = "/main"
+                  window.location.href = "/"
                }, 500)
               ).catch(error => console.error('Error:', error))
 
@@ -40,10 +40,14 @@
                 }
               }).then(res => res.json())
               .then(function(response){
-                  if(response.success){
-                    window.location.href ='/main'
-                  }
+                window.localStorage.removeItem('Authorization')
+                if(response.access_token){
+                  
+                  window.localStorage.setItem("Authorization", "bearer " + response.access_token)
+                  window.location.href = "/main"
+                }
               })
+              
         })    
     })
     })(jQuery);

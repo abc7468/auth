@@ -12,7 +12,7 @@ type User struct {
 type DataForToken struct {
 	AccessTokenUuid  string `json:"access_token_uuid"`
 	RefreshTokenUuid string `json:"refresh_token_uuid"`
-	UserEmail        string `json:"user_email"`
+	UserId           string `json:"user_id"`
 	UserAuthorized   string `json:"user_authorized"`
 }
 

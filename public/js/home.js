@@ -4,8 +4,22 @@
         var access_token = window.localStorage.getItem('Authorization')
 
         $('#adminBtn').on("click", function(event) {
-            document.location.href='/admin'
-              
+          fetch("/auth/user", {
+            method: 'GET', // or 'PUT'
+            headers:{
+                "Authorization":access_token
+            }
+          }).then(res=>res.json())
+          .then(function(response){
+            if(response.user_authorized=="1"){
+              alert("권한 부족")
+              return
+            }
+            else{
+              console.log(response.user_authorized)
+
+            }
+          })
         });
         $('#logoutBtn').on("click", function(event) {
         
@@ -22,5 +36,30 @@
                }, 500))
 
         })
+
+
+        $(document).ready(function(){
+
+          fetch('/auth/token/valid', {
+              method: "GET",
+              headers: {
+                "Authorization": access_token
+              }
+            }).then(res => res.json())
+            .then(function(response){
+              if(response.access_token!=""){
+                console.log(response.access_token)
+                window.localStorage.setItem("Authorization", "bearer " + response.access_token)
+                return
+              }  
+              if(!response.success){
+                console.log("false")
+                  window.localStorage.removeItem('Authorization')
+                  window.location.href ='/'
+                  return
+              }
+                
+            })
+      })   
     });
     })(jQuery);

@@ -40,7 +40,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]string{"user_email": user.Email, "user_authorized": user.Authority}
+	data := map[string]string{"user_id": user.ID, "user_authorized": user.Authority}
 	jsonData, _ := json.Marshal(data)
 	resp, err := http.Post("http://localhost:8080/auth/token", "application/json", bytes.NewBuffer(jsonData))
 
@@ -95,20 +95,23 @@ func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusOK, users)
 }
 
-type Test2 struct {
-	Id        string `json:"id"`
-	Authority string `json:"authority"`
-}
-
 func deleteUsersHandler(w http.ResponseWriter, r *http.Request) {
-	test := &Test2{}
-	err := json.NewDecoder(r.Body).Decode(test)
+	userId := &model.UserId{}
+	err := json.NewDecoder(r.Body).Decode(userId)
 	defer r.Body.Close()
 	if err != nil {
 		utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	err = dbHandler.DeleteUser(utils.StringToInt(test.Id))
+	err = dbHandler.DeleteUser(utils.StringToInt(userId.Id))
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	data := map[string]string{"id": userId.Id}
+	jsonData, _ := json.Marshal(data)
+	fmt.Println(data)
+	_, err = http.Post("http://localhost:8080/auth/tokens", "", bytes.NewBuffer(jsonData))
 	if err != nil {
 		utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -117,22 +120,20 @@ func deleteUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateUsersHandler(w http.ResponseWriter, r *http.Request) {
-	test := &Test2{}
-	err := json.NewDecoder(r.Body).Decode(test)
+	user := &model.UserIdAndAuth{}
+	err := json.NewDecoder(r.Body).Decode(user)
 	defer r.Body.Close()
 	if err != nil {
 		utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	err = dbHandler.ChangeUserAuth(test.Authority, utils.StringToInt(test.Id))
+	err = dbHandler.ChangeUserAuth(user.Authority, utils.StringToInt(user.Id))
 	if err != nil {
 		utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	utils.RespondJSON(w, http.StatusOK, model.Success{Success: true})
 }
-
-
 
 func AddApiRouter(r *mux.Router) {
 	dbHandler = model.NewDBHandler()
