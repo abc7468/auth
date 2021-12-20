@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -30,4 +31,17 @@ func RespondJSON(w http.ResponseWriter, status int, payload interface{}) {
 // respondError makes the error response with payload as json format
 func RespondError(w http.ResponseWriter, code int, message string) {
 	RespondJSON(w, code, map[string]string{"error": message})
+}
+
+func SetData(r *http.Request, i interface{}) (interface{}, error) {
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(body, i)
+	if err != nil {
+		return nil, err
+	}
+	return i, nil
 }

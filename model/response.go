@@ -7,6 +7,15 @@ type UserId struct {
 	Id string `json:"id"`
 }
 
+type UserEmail struct {
+	Email string `json:"email"`
+}
+
+type UserEmailAndCode struct {
+	Email string `json:"email"`
+	Code  string `json:"code"`
+}
+
 type UserIdAndAuth struct {
 	Id        string `json:"id"`
 	Authority string `json:"authority"`

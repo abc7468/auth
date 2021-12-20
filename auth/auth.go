@@ -356,6 +356,41 @@ func getUserDataHandler(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusOK, data)
 }
 
+func createVerifyingCode(w http.ResponseWriter, r *http.Request) {
+	//email을 key로
+	email := &model.UserEmail{}
+	utils.SetData(r, email)
+	exp := time.Now().Add(time.Minute * 3).Unix()
+	at := time.Unix(exp, 0) //converting Unix to UTC
+	now := time.Now()
+	code := uuid.NewV4().String()[:7]
+	err := client.Set(email.Email, code, at.Sub(now)).Err()
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+	}
+	data := &model.VerificationData{}
+	data.Email = email.Email
+	data.Code = code
+	utils.RespondJSON(w, http.StatusCreated, data)
+}
+
+func verifyingCode(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	code, _ := vars["code"]
+	email := r.FormValue("email")
+	val, err := client.Get(email).Result()
+	if err != nil {
+		utils.RespondJSON(w, http.StatusUnauthorized, model.Success{Success: false})
+		return
+	}
+	if code == val {
+		client.Del(email)
+		utils.RespondJSON(w, http.StatusOK, model.Success{Success: true})
+		return
+	}
+	utils.RespondJSON(w, http.StatusUnauthorized, model.Success{Success: false})
+}
+
 func AddAuthRouter(r *mux.Router) {
 	if client == nil {
 		RedisConnect()
@@ -367,4 +402,8 @@ func AddAuthRouter(r *mux.Router) {
 	authRouter.HandleFunc("/token", DeleteTokenHandler).Methods("DELETE")
 	authRouter.HandleFunc("/tokens", DeleteTokenForValueHandler).Methods("POST")
 	authRouter.HandleFunc("/user", getUserDataHandler).Methods("GET")
+	authRouter.HandleFunc("/code", createVerifyingCode).Methods("POST")
+	//localhost:8080/auth/code/577bfbc?email=1@naver.com
+	authRouter.Path("/code/{code}").Queries("email", "{email}").HandlerFunc(verifyingCode).Methods("GET")
+
 }

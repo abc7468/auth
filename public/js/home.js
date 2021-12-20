@@ -17,6 +17,7 @@
             }
             else{
               console.log(response.user_authorized)
+              document.location.href = "/admin"
 
             }
           })
