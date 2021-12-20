@@ -15,7 +15,7 @@ import (
 var smtpAuth smtp.Auth
 
 func initSmtpAuth() {
-	smtpAuth = smtp.PlainAuth("", "aqwer7468@gmail.com", "dd!", "smtp.gmail.com")
+	smtpAuth = smtp.PlainAuth("", "aqwer7468@gmail.com", "dd", "smtp.gmail.com")
 
 }
 
